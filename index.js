@@ -18,12 +18,15 @@ client.on("message", (message) => {
             (channel) => channel.name === channelName
         );
         if(existingChannel) { 
-            existingChannel.delete(); mppClient.stop(); 
+            mppClient.say("Unbridging.")
+            existingChannel.delete(); 
+            mppClient.stop(); 
         } else { 
             message.channel.send("@"+message.author.tag+" invalid channel."); 
         }
     }
     if (message.content.startsWith("!bridge")) {
+        let category = message.guild.channels.cache.find(c => c.name == "bridges" && c.type == "category")
         if (!channelName) {
             return message.reply("Please specify the channel name.");
         }
@@ -39,9 +42,12 @@ client.on("message", (message) => {
                     message.guild.channels
                         .create(channelName, { type: "text" })
                         .then((channel) => {
+                            if (category && channel) channel.setParent(category.id);
                             mppClient.start();
                             mppClient.on('hi', message => {
                                 mppClient.setChannel(channelName)
+                                mppClient.setName("[discord.gg/g5DvrEATnr]")
+                                mppClient.say("Bridging.")
                                 cname = channelName
                             })
                         })
@@ -70,29 +76,37 @@ client.on("message", (message) => {
         }
     } else {
         let messageContent = message.content;
-
+        if(message.channel.name !== cname.replaceAll(" ", "-")) return;
         message.attachments.forEach((attachment) => {
-            messageContent += `\n${attachment.url}`;
+            messageContent += ` ${attachment.url} `;
         });
-
-        mppClient.sendArray([
-            { m: "a", message: `[DISCORD]: ${message.author.tag}: ${messageContent}` }
-        ]);
+        if(messageContent.startsWith("!cmd")) { 
+            mppClient.sendArray([
+                { m: "a", message: "⤹"+message.author.tag }
+            ])
+            mppClient.sendArray([
+                { m: "a", message: `${message.content.split(" ").slice(1).join(" ")}` }
+            ])
+        } else {
+            mppClient.sendArray([
+                { m: "a", message: `[DISCORD]: ${message.author.tag}: ${messageContent}` }
+            ]);
+        }
     }
 });
 mppClient.on("ch", msg => {
-    console.log(msg)
     cname = msg.ch._id
 })
 mppClient.on("a", (mppMessage) => {
+    if (mppMessage.a.includes("||")) mppMessage.a.replaceAll("||", "\|\|");
     if (mppMessage.a.includes("@everyone")) {
-        mppMessage.a = mppMessage.a.replace("@everyone", "@ever yone");
+        mppMessage.a = mppMessage.a.replaceAll("@everyone", "`@ everyone`");
     }
     if (mppMessage.a.includes("@here")) {
-        mppMessage.a = mppMessage.a.replace("@here", "@he re");
+        mppMessage.a = mppMessage.a.replaceAll("@here", "`@ here`");
     }
     if(mppMessage.p.id == mppClient.getOwnParticipant().id) return;
-    const channel = client.channels.cache.find(channel => channel.name === cname.replace(" ", "-"))
+    const channel = client.channels.cache.find(channel => channel.name === cname.replaceAll(" ", "-"))
     channel.send(`[${mppMessage.p.id}] ${mppMessage.p.name}: ${mppMessage.a}`)
 });
 
