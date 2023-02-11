@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "mppclone-client": "^1.0.0"
+  }
+}
